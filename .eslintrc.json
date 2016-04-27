@@ -1,0 +1,12 @@
+{
+	"env": {
+		"browser": true,
+		"node": true
+	},
+	"rules": {
+		"semi": [2, "always"]
+	},
+	"extends": [
+		"eslint:recommended"
+	]
+}
