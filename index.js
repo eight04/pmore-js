@@ -120,14 +120,128 @@ function parseControl(s, defaultWait) {
 }
 
 function createAnimate(frames, viewer) {
-	var i, wait = 1;
+	var i, wait = 1, nameMap = {};
 	
 	for (i = 0; i < frames.length; i++) {
 		frames[i].control = parseControl(frames[i].control, wait);
 		wait = frames[i].control.wait;
+		if (frames[i].control.name) {
+			nameMap[frames[i].control.name] = i;
+		}
 	}
 	
-	function start() {}
+	var sync, include, current, pause, keep;
+	
+	function startOldMode(line, delay) {}
+	
+	function execute(i) {
+		var frame = frames[i],
+			control = frames[i].control;
+		
+		if (!control.goto && !control.include) {
+			// Don't show the frame if it is jump command
+			viewer.scrollTo(frame);
+			current = i;
+		}
+		
+		if (control.end) {
+			// end
+			viewer.end();
+			return;
+		}
+		
+		if (control.oldWait) {
+			// old mode
+			startOldMode(frame.line, control.oldWait);
+			return;
+		}
+			
+		if (control.sync) {
+			// start syncing
+			sync = {
+				base: Date.now(),
+				elapse: 0
+			};
+		}
+		
+		if (control.keep) {
+			// keep keys
+			keep = control.keep;
+		}
+		
+		if (control.pause) {
+			pause = true;
+			viewer.pause();
+		} else if (control.goto) {
+			i = Math.floor(Math.random() * control.goto.length);
+			
+			var cmd = control.goto[i],
+				next;
+				
+			// find next frame
+			if (cmd.type == "name") {
+				next = nameMap[cmd.name];
+			} else if (cmd.type == "frame") {
+				// target frame is relate to current view
+				if (cmd.relative) {
+					next = current + cmd.number;
+				} else {
+					next = cmd.number;
+				}
+			} else if (cmd.type == "line") {
+				// target line is relate to current ^L
+				var targetLine;
+				if (cmd.relative) {
+					targetLine = frame.line + cmd.number;
+				} else {
+					targetLine = cmd.number;
+				}
+				for (i = 0; i < frames.length; i++) {
+					if (frames[i].line >= targetLine) {
+						next = i;
+						break;
+					}
+				}
+			} else if (cmd.type == "page") {
+				/* It seems that this is how pmore works with pages:
+				(not sure)
+				
+				0. A page has 23 lines.
+				1. Find the page number of the line of the ^LG tag. (line // 23)
+				2. + cmd.number.
+				3. Find the ^L tag on target page
+				*/
+				var targetLine, pageSize = viewer.getPageSize();
+				if (cmd.relative) {
+					targetLine = (Math.floor(frame.line / pageSize) + cmd.number) * pageSize;
+				} else {
+					targetLine = cmd.number * pageSize;
+				}
+				for (i = 0; i < frames.length; i++) {
+					if (frames[i].line >= targetLine) {
+						next = i;
+						break;
+					}
+				}
+			}
+			if (!sync) {
+				setTimeout(function(){
+					execute(next);
+				}, control.wait * 1000);
+			} else {
+				sync.elapse += control.wait;
+				setTimeout(function(){
+					execute(next);
+				}, sync.base + sync.elapse * 1000 - Date.now())
+			}
+		} else if (control.input) {
+			
+		}
+	}
+	
+	function start() {
+		execute(0);
+	}
 	
 	function stop() {}
 	
