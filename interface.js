@@ -46,22 +46,7 @@ var Viewer = {
 	
 var InputOption = {
 	/**
-	 *  {string} `key` is a character or a character with "@" prefix. If it
-	 *  starts with "@", it represents a special key as follow:
-	 *  (case-sensitive)
-	 *  
-	 *  -  @u UP
-	 *  -  @d DOWN
-	 *  -  @l LEFT
-	 *  -  @r RIGHT
-	 *  -  @b BACKSPACE
-	 *  -  @H HOME
-	 *  -  @E END
-	 *  -  @P PAGEUP
-	 *  -  @N PAGEDOWN
-	 *  -  @I INSERT
-	 *  -  @D DELETE
-	 *  -  @a ANY KEY
+	 *  {string} See the key argument of pmore.trigger()
 	 */
 	key: "",
 	
