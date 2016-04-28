@@ -41,7 +41,8 @@ pmore.start();
 ```js
 var frame = {
 	line: 0,	// The line number of the ^L tag.
-	control: "^L..."	// ^L definition.
+	control: "^L..."	// ^L definition. This will be parsed into a control
+						// object after sending to pmore
 };
 ```
 	
@@ -52,8 +53,16 @@ Viewer is a service used by pmore. Implement it with following interface:
 ```js
 var viewer = {
 	
-	show: function(i) {
-		/* Show the frame with `i` index */
+	scrollTo: function(frame) {
+		/* Scroll to the frame.
+		
+		The viewer should show the next line of ^L tag, i.e. the 
+		`frame.line + 1` line.
+		*/
+	},
+	
+	scrollToLine: function(line) {
+		/* Scroll to specified line. Return false when out of index */
 	},
 	
 	getPageSize: function() {
