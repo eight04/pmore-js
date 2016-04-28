@@ -55,16 +55,13 @@ function parseKeep(s) {
 	return s.match(/@?./g);
 }
 
-function parseStatements(ss) {
-	var result = [], i, s,
-		re = /[\d.]+|P|E|S|O=([\d.]+)|G.+|#(?:[^#]+#)+|K#[^#]+#|:[^:]+:|I(:[^:]+:|[fpl][+-]?\d+),(:[^:]+:|[fpl][+-]?\d+)/g,
-		match, wait = 1, control;
+function parseControl(s, defaultWait) {
+	s = s.replace(/^(==)?\^L/, "");
 	
-	for (i = 0; i < ss.length; i++) {
-		s = ss[i].replace(/^(==)?\^L/, "");
-		control = {
-			id: i + 1,
-			wait: wait,
+	var re = /[\d.]+|P|E|S|O=([\d.]+)|G.+|#(?:[^#]+#)+|K#[^#]+#|:[^:]+:|I(:[^:]+:|[fpl][+-]?\d+),(:[^:]+:|[fpl][+-]?\d+)/g,
+		match,
+		result = {
+			wait: defaultWait,
 			pause: false,
 			end: false,
 			sync: false,
@@ -74,83 +71,66 @@ function parseStatements(ss) {
 			keep: null,
 			name: null,
 			include: null
-		};
-		while (match = re.exec(s)) {
-			switch (match[0][0]) {
-				case "P":
-					control.pause = true;
-					break;
-				case "E":
-					control.end = true;
-					break;
-				case "S":
-					control.sync = true;
-					break;
-				case "O":
-					control.oldWait = +match[1];
-					if (control.oldWait < 0.1) {
-						control.oldWait = 0.1;
-					}
-					break;
-				case "G":
-					control.goto = parseGoto(match[0]);
-					break;
-				case "#":
-					control.input = parseInput(match[0]);
-					break;
-				case "K":
-					control.keep = parseKeep(match[0]);
-					break;
-				case ":":
-					control.name = match[0].substring(1, match[0].length - 1);
-					break;
-				case "I":
-					control.include = {
-						start: parseCmd(match[2]),
-						end: parseCmd(match[3])
-					};
-					break;
-				default:
-					wait = +match[0];
-					if (wait < 0.1) {
-						wait = 0.1;
-					}
-			}
+		};	
+	
+	while (match = re.exec(s)) {
+		switch (match[0][0]) {
+			case "P":
+				result.pause = true;
+				break;
+			case "E":
+				result.end = true;
+				break;
+			case "S":
+				result.sync = true;
+				break;
+			case "O":
+				result.oldWait = +match[1];
+				if (result.oldWait < 0.1) {
+					result.oldWait = 0.1;
+				}
+				break;
+			case "G":
+				result.goto = parseGoto(match[0]);
+				break;
+			case "#":
+				result.input = parseInput(match[0]);
+				break;
+			case "K":
+				result.keep = parseKeep(match[0]);
+				break;
+			case ":":
+				result.name = match[0].substring(1, match[0].length - 1);
+				break;
+			case "I":
+				result.include = {
+					start: parseCmd(match[2]),
+					end: parseCmd(match[3])
+				};
+				break;
+			default:
+				result.wait = +match[0];
+				if (result.wait < 0.1) {
+					result.wait = 0.1;
+				}
 		}
-		control.wait = wait;
-		result.push(control);
 	}
 	
 	return result;
 }
 
-function createAnimate(statements, viewer) {
-	statements = parseStatements(statements);
+function createAnimate(frames, viewer) {
+	var i, wait = 1;
 	
-	// Start the animation
+	for (i = 0; i < frames.length; i++) {
+		frames[i].control = parseControl(frames[i].control, wait);
+		wait = frames[i].control.wait;
+	}
+	
 	function start() {}
 	
-	// Stop the animation
 	function stop() {}
 	
-	/**
-	 *  @param {string} key A character or two characters with "@" prefix. If 
-	 *  it starts with "@", it represents a special key as follow:
-	 *  (case-sensitive)
-	 *  
-	 *  -  @u UP
-	 *  -  @d DOWN
-	 *  -  @l LEFT
-	 *  -  @r RIGHT
-	 *  -  @b BACKSPACE
-	 *  -  @H HOME
-	 *  -  @E END
-	 *  -  @P PAGEUP
-	 *  -  @N PAGEDOWN
-	 *  -  @I INSERT
-	 *  -  @D DELETE
-	 *  -  @a ANY KEY
-	 */
 	function trigger(key) {
 		
 	}
