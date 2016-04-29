@@ -146,10 +146,14 @@ function Pmore(frames, viewer) {
 		sync = null;
 		include = null;
 		current = null;
-		viewer.unpause();
-		pause = null;
+		if (pause) {
+			viewer.unpause();
+			pause = null;
+		}
 		keep = null;
-		viewer.inputEnd();
+		if (input && input.options[0].message) {
+			viewer.inputEnd();
+		}
 		input = null;
 		clearTimeout(waitInput);
 		waitInput = null;
@@ -182,9 +186,11 @@ function Pmore(frames, viewer) {
 			}
 			if (cmd) {
 				var next = frameSet.resolve(current, cmd);
-				viewer.inputEnd();
 				if (sync) {
 					sync.base = Date.now();
+				}
+				if (input.options[0].message) {
+					viewer.inputEnd();
 				}
 				input = null;
 				clearTimeout(waitInput);
