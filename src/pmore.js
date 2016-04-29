@@ -178,12 +178,19 @@ function Pmore(frames, viewer) {
 		
 		if (input) {
 			var i, cmd;
+			
+			// handle select
+			if (key == " " || key == "\n") {
+				cmd = input.options[inputSelect ? inputSelect : 0].cmd;
+			}
+			
 			for (i = 0; i < input.options.length; i++) {
 				if (input.options[i].key == key || input.options[i].key == "@a") {
 					cmd = input.options[i].cmd;
 					break;
 				}
 			}
+			
 			if (cmd) {
 				var next = frameSet.resolve(current, cmd);
 				if (sync) {
