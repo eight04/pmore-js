@@ -1,5 +1,5 @@
 function cmd(cmd) {
-	var match = cmd.match(/:([^:]):|([fpl])([+-]?)(\d+)/),
+	var match = cmd.match(/:([^:]):|([fpl])(([+-]?)\d+)/),
 		typeTable = {
 			f: "frame",
 			p: "page",
@@ -14,8 +14,8 @@ function cmd(cmd) {
 	} else {
 		return {
 			type: typeTable[match[2]],
-			relative: match[3],
-			number: +match[4]
+			relative: match[4],
+			number: +match[3]
 		};
 	}
 }
