@@ -52,7 +52,13 @@ function parseInput(s) {
 
 function parseKeep(s) {
 	s = s.substring(2, s.length - 1);
-	return s.match(/@?./g);
+	var keys = s.match(/@?./g),
+		i,
+		result = {};
+	for (i = 0; i < keys.length; i++) {
+		result[keys[i]] = true;
+	}
+	return result;
 }
 
 function parseControl(s, defaultWait) {
@@ -119,24 +125,101 @@ function parseControl(s, defaultWait) {
 	return result;
 }
 
-function createAnimate(frames, viewer) {
+function FrameSet(values, viewer) {
 	var i, wait = 1, nameMap = {};
 	
-	for (i = 0; i < frames.length; i++) {
-		frames[i].control = parseControl(frames[i].control, wait);
-		wait = frames[i].control.wait;
-		if (frames[i].control.name) {
-			nameMap[frames[i].control.name] = i;
+	for (i = 0; i < values.length; i++) {
+		values[i].control = parseControl(values[i].control, wait);
+		wait = values[i].control.wait;
+		if (values[i].control.name) {
+			nameMap[values[i].control.name] = i;
 		}
 	}
 	
-	var sync, include, current, pause, keep;
+	function resolve(i, cmd) {
+		// find next frame
+		if (cmd.type == "name") {
+			return nameMap[cmd.name];
+		}
+
+		if (cmd.type == "frame") {
+			// it is confusing when negative
+			if (!cmd.relative) {
+				return cmd.number - 1;	// frame number starts with 1
+			}
+			if (cmd.number < 0) {
+				return i + cmd.number - 1;	// why? no idea
+			}
+			return i + cmd.number;
+		}
+		
+		var targetLine, j;
+		if (cmd.type == "line") {
+			if (cmd.relative) {
+				targetLine = values[i].line + cmd.number;
+			} else {
+				targetLine = cmd.number - 1;	// line number starts with 1
+			}
+		} else {
+			/* It seems that this is how pmore works with pages:
+			(not sure)
+			
+			0. A page has 23 lines.
+			1. Find the page number of the line of the ^LG tag. (line // 23)
+			2. + cmd.number.
+			3. Find the ^L tag on target page
+			*/
+			var pageSize = viewer.getPageSize();
+			if (cmd.relative) {
+				targetLine = (Math.floor(frame.line / pageSize) + cmd.number) * pageSize;
+			} else {
+				targetLine = (cmd.number - 1) * pageSize;	// page number starts with 1
+			}
+		}
+		for (j = 0; j < values.length; j++) {
+			if (values[j].line >= targetLine) {
+				return j;
+			}
+		}
+		// not found
+		return null;
+	}
 	
-	function startOldMode(line, delay) {}
+	return {
+		values: values,
+		resolve: resolve
+	};
+}
+
+function Pmore(frames, viewer) {
+	var frameSet = FrameSet(frames);
+	
+	var timer, sync, include, current, pause, keep, input, waitInput;
+	
+	function syncTimeout(fn, delay) {
+		if (!sync) {
+			timer = setTimeout(fn, delay);
+		} else {
+			sync.base += delay;
+			timer = setTimeout(fn, sync.base - Date.now());
+		}
+		return timer;
+	}
+	
+	function startOldMode(line, delay) {
+		// old mode: always scroll 22 lines down
+		function next() {
+			if (viewer.scrollToLine(line) !== false) {
+				line += 22;
+				syncTimeout(next, delay);
+			}
+		}
+		next();
+	}
 	
 	function execute(i) {
-		var frame = frames[i],
-			control = frames[i].control;
+		var frame = frameSet.values[i],
+			control = frame.control;
 		
 		if (!control.goto && !control.include) {
 			// Don't show the frame if it is jump command
@@ -159,8 +242,7 @@ function createAnimate(frames, viewer) {
 		if (control.sync) {
 			// start syncing
 			sync = {
-				base: Date.now(),
-				elapse: 0
+				base: Date.now()
 			};
 		}
 		
@@ -172,70 +254,46 @@ function createAnimate(frames, viewer) {
 		if (control.pause) {
 			pause = true;
 			viewer.pause();
+			
 		} else if (control.goto) {
-			i = Math.floor(Math.random() * control.goto.length);
+			var j = Math.floor(Math.random() * control.goto.length),
+				cmd = control.goto[j],
+				next = frameSet.resolve(i, cmd);
+				
+			syncTimeout(function(){
+				execute(next);
+			}, 0.1 * 1000);
 			
-			var cmd = control.goto[i],
-				next;
-				
-			// find next frame
-			if (cmd.type == "name") {
-				next = nameMap[cmd.name];
-			} else if (cmd.type == "frame") {
-				// target frame is relate to current view
-				if (cmd.relative) {
-					next = current + cmd.number;
-				} else {
-					next = cmd.number;
-				}
-			} else if (cmd.type == "line") {
-				// target line is relate to current ^L
-				var targetLine;
-				if (cmd.relative) {
-					targetLine = frame.line + cmd.number;
-				} else {
-					targetLine = cmd.number;
-				}
-				for (i = 0; i < frames.length; i++) {
-					if (frames[i].line >= targetLine) {
-						next = i;
-						break;
-					}
-				}
-			} else if (cmd.type == "page") {
-				/* It seems that this is how pmore works with pages:
-				(not sure)
-				
-				0. A page has 23 lines.
-				1. Find the page number of the line of the ^LG tag. (line // 23)
-				2. + cmd.number.
-				3. Find the ^L tag on target page
-				*/
-				var targetLine, pageSize = viewer.getPageSize();
-				if (cmd.relative) {
-					targetLine = (Math.floor(frame.line / pageSize) + cmd.number) * pageSize;
-				} else {
-					targetLine = cmd.number * pageSize;
-				}
-				for (i = 0; i < frames.length; i++) {
-					if (frames[i].line >= targetLine) {
-						next = i;
-						break;
-					}
-				}
-			}
-			if (!sync) {
-				setTimeout(function(){
-					execute(next);
-				}, control.wait * 1000);
-			} else {
-				sync.elapse += control.wait;
-				setTimeout(function(){
-					execute(next);
-				}, sync.base + sync.elapse * 1000 - Date.now())
-			}
 		} else if (control.input) {
+			input = control.input;
+			if (control.input.options[0].message) {
+				viewer.inputStart(control.input.options);
+			}
+			// Input key will reset the timeout
+			if (control.input.wait) {
+				waitInput = syncTimeout(function(){
+					viewer.inputEnd();
+					input = null;
+					waitInput = null;
+					execute(i + 1);
+				}, control.input.wait * 1000);
+			}
 			
+		} else if (control.include) {
+			include = {
+				target: frameSet.resolve(i, control.include.end),
+				back: i + 1;
+			};
+			
+			syncTimeout(function(){
+				execute(control.include.start);
+			}, 0.1 * 1000);
+			
+		} else {
+			// nothing else, just simple ^Lx
+			syncTimeout(function(){
+				execute(i + 1);
+			}, control.wait * 1000);
 		}
 	}
 	
@@ -243,7 +301,22 @@ function createAnimate(frames, viewer) {
 		execute(0);
 	}
 	
-	function stop() {}
+	function stop() {
+		// cleanup everything
+		clearTimeout(timer);
+		timer = null;
+		sync = null;
+		include = null;
+		current = null;
+		viewer.unpause();
+		pause = null;
+		keep = null;
+		viewer.inputEnd();
+		input = null;
+		clearTimeout(waitInput);
+		waitInput = null;
+		viewer.end();
+	}
 	
 	function trigger(key) {
 		
@@ -256,4 +329,4 @@ function createAnimate(frames, viewer) {
 	};	
 }
 
-module.exports = createAnimate;
+module.exports = Pmore;
