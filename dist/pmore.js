@@ -422,6 +422,7 @@ function Pmore(frames, viewer) {
 		
 		if (pause) {
 			pause = null;
+			viewer.unpause();
 			if (sync) {
 				sync.base = Date.now();
 			}
