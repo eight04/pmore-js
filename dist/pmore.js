@@ -75,13 +75,13 @@ module.exports = FrameSet;
 
 },{"./parser":3}],3:[function(require,module,exports){
 function cmd(cmd) {
-	var match = cmd.match(/:([^:]):|([fpl])(([+-]?)\d+)/),
+	var match = cmd.match(/:([^:]+):|([fpl])(([+-]?)\d+)/),
 		typeTable = {
 			f: "frame",
 			p: "page",
 			l: "line"
 		};
-	
+		
 	if (match[1]) {
 		return {
 			type: "name",
