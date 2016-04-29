@@ -128,7 +128,7 @@ function getNextKey(key) {
 }
 
 function input(s) {
-	var re = /#([^#,]{0,2}),([^#,]+)(?:,([^#]*))?|#(\d+)|#/g,
+	var re = /#([^#,]{0,2}),([^#,]+)(?:,([^#]*))?|#([\d.]+)|#/g,
 		match,
 		result = {
 			wait: null,
@@ -248,7 +248,7 @@ module.exports = {
 var FrameSet = require("./frame.js");
 
 function Pmore(frames, viewer) {
-	var frameSet = FrameSet(frames);
+	var frameSet = FrameSet(frames, viewer);
 	
 	var timer, sync, include, current, pause, keep, input, waitInput, inputSelect;
 	
@@ -277,6 +277,11 @@ function Pmore(frames, viewer) {
 		if (i >= frames.length) {
 			stop();
 			return;
+		}
+		
+		// Not sure if this is the right way.
+		if (i < 0) {
+			i = 0;
 		}
 		
 		current = i;
@@ -365,13 +370,14 @@ function Pmore(frames, viewer) {
 		}
 		
 		if (control.include) {
+			next = frameSet.resolve(i, control.include.start);
 			include = {
 				target: frameSet.resolve(i, control.include.end),
 				back: i + 1
 			};
 			
 			syncTimeout(function(){
-				execute(control.include.start);
+				execute(next);
 			}, 0.1 * 1000);
 			return;
 		}
