@@ -24,21 +24,56 @@ function parseGoto(s) {
 	return s.substring(1).split(",").map(parseCmd);
 }
 
+function getNextKey(key) {
+	// are these keycode order?
+	var arrowKeys = ["@u", "@d", "@r", "@l"],
+		editKeys = ["@H", "@I", "@D", "@E", "@P", "@D"];
+		
+	if (key.length == 1) {
+		if (key != "~") {
+			return String.fromCharCode(key.charCodeAt(0) + 1);
+		}
+		return null;
+	}
+	
+	var i = arrowKeys.indexOf(key);
+	if (i >= 0) {
+		if (i + 1 < arrowKeys.length) {
+			return arrowKeys[i + 1];
+		}
+		return null;
+	}
+	
+	i = editKeys.indexOf(key);
+	if (i >= 0 && i + 1 < editKeys.length) {
+		return editKeys[i + 1];
+	}
+	return null;
+}
+		
 function parseInput(s) {
 	var re = /#([^#,]{0,2}),([^#,]+)(?:,([^#]*))?|#(\d+)|#/g,
 		match,
 		result = {
 			wait: null,
 			options: []
-		};
+		},
+		defaultKey = "1";
 	
-	while (match = re.exec(s)) {
+	while (match = re.exec(s)) { // eslint-disable-line no-cond-assign
 		if (match[2]) {
-			result.options.push({
+			var option = {
 				key: match[1],
 				cmd: parseCmd(match[2]),
 				message: match[3]
-			});
+			};
+			if (!option.key && defaultKey) {
+				option.key = defaultKey;
+			}
+			if (option.key) {
+				defaultKey = getNextKey(option.key);
+			}
+			result.options.push(option);
 		} else if (match[4]) {
 			result.wait = +match[4];
 			if (result.wait < 0.1) {
@@ -79,7 +114,7 @@ function parseControl(s, defaultWait) {
 			include: null
 		};	
 	
-	while (match = re.exec(s)) {
+	while (match = re.exec(s)) { // eslint-disable-line no-cond-assign
 		switch (match[0][0]) {
 			case "P":
 				result.pause = true;
@@ -171,7 +206,7 @@ function FrameSet(values, viewer) {
 			*/
 			var pageSize = viewer.getPageSize();
 			if (cmd.relative) {
-				targetLine = (Math.floor(frame.line / pageSize) + cmd.number) * pageSize;
+				targetLine = (Math.floor(values[i].line / pageSize) + cmd.number) * pageSize;
 			} else {
 				targetLine = (cmd.number - 1) * pageSize;	// page number starts with 1
 			}
@@ -194,7 +229,7 @@ function FrameSet(values, viewer) {
 function Pmore(frames, viewer) {
 	var frameSet = FrameSet(frames);
 	
-	var timer, sync, include, current, pause, keep, input, waitInput;
+	var timer, sync, include, current, pause, keep, input, waitInput, inputSelect;
 	
 	function syncTimeout(fn, delay) {
 		if (!sync) {
@@ -218,18 +253,28 @@ function Pmore(frames, viewer) {
 	}
 	
 	function execute(i) {
+		current = i;
+		
+		var next;
+		
+		if (include && include.target == i) {
+			next = include.back;
+			include = null;
+			execute(next);
+			return;
+		}
+
 		var frame = frameSet.values[i],
 			control = frame.control;
 		
 		if (!control.goto && !control.include) {
 			// Don't show the frame if it is jump command
 			viewer.scrollTo(frame);
-			current = i;
 		}
 		
 		if (control.end) {
 			// end
-			viewer.end();
+			stop();
 			return;
 		}
 		
@@ -257,8 +302,9 @@ function Pmore(frames, viewer) {
 			
 		} else if (control.goto) {
 			var j = Math.floor(Math.random() * control.goto.length),
-				cmd = control.goto[j],
-				next = frameSet.resolve(i, cmd);
+				cmd = control.goto[j];
+			
+			next = frameSet.resolve(i, cmd);
 				
 			syncTimeout(function(){
 				execute(next);
@@ -267,7 +313,9 @@ function Pmore(frames, viewer) {
 		} else if (control.input) {
 			input = control.input;
 			if (control.input.options[0].message) {
+				inputSelect = 0;
 				viewer.inputStart(control.input.options);
+				viewer.inputSelect(inputSelect);
 			}
 			// Input key will reset the timeout
 			if (control.input.wait) {
@@ -275,6 +323,7 @@ function Pmore(frames, viewer) {
 					viewer.inputEnd();
 					input = null;
 					waitInput = null;
+					inputSelect = null;
 					execute(i + 1);
 				}, control.input.wait * 1000);
 			}
@@ -282,7 +331,7 @@ function Pmore(frames, viewer) {
 		} else if (control.include) {
 			include = {
 				target: frameSet.resolve(i, control.include.end),
-				back: i + 1;
+				back: i + 1
 			};
 			
 			syncTimeout(function(){
@@ -319,14 +368,68 @@ function Pmore(frames, viewer) {
 	}
 	
 	function trigger(key) {
+		if (key == "q") {
+			viewer.forceEnd();
+			stop();
+			return;
+		}
 		
+		if (pause) {
+			pause = null;
+			execute(current + 1);
+			return;
+		}
+		
+		if (input) {
+			var i, cmd;
+			for (i = 0; i < input.options.length; i++) {
+				if (input[i].key == key || input[i].key == "@a") {
+					cmd = input[i].cmd;
+					break;
+				}
+			}
+			if (cmd) {
+				var next = frameSet.resolve(current, cmd);
+				viewer.inputEnd();
+				sync.base = Date.now();
+				input = null;
+				clearTimeout(waitInput);
+				waitInput = null;
+				inputSelect = null;
+				execute(next);
+				return;
+			}
+			
+			// handle menu option select
+			if (inputSelect != null) {
+				if (key == "@l") {
+					inputSelect--;
+					if (inputSelect < 0) {
+						inputSelect = 0;
+					}
+					viewer.inputSelect(inputSelect);
+				} else if (key == "@r") {
+					inputSelect++;
+					if (inputSelect >= input.options.length) {
+						inputSelect = input.options.length - 1;
+					}
+					viewer.inputSelect(inputSelect);
+				}
+			}
+		}
+		
+		
+		if (!input && (!keep || !keep["@a"] && !keep[key])) {
+			viewer.forceEnd();
+			stop();
+		}
 	}
 	
 	return {
 		start: start,
 		stop: stop,
 		trigger: trigger
-	};	
+	};
 }
 
 module.exports = Pmore;
