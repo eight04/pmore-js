@@ -52,7 +52,7 @@ function getNextKey(key) {
 }
 
 function input(s) {
-	var re = /#([^#,]{0,2}),([^#,]+)(?:,([^#]*))?|#(\d+)|#/g,
+	var re = /#([^#,]{0,2}),([^#,]+)(?:,([^#]*))?|#([\d.]+)|#/g,
 		match,
 		result = {
 			wait: null,
