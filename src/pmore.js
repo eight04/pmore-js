@@ -102,10 +102,11 @@ function Pmore(frames, viewer) {
 				viewer.inputSelect(inputSelect);
 			}
 			// Input key will reset the timeout
-			// console.log(control.input);
 			if (control.input.wait) {
 				waitInput = syncTimeout(function(){
-					viewer.inputEnd();
+					if (input.options[0].message) {
+						viewer.inputEnd();
+					}
 					input = null;
 					waitInput = null;
 					inputSelect = null;
