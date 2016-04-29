@@ -77,10 +77,17 @@ var viewer = {
 		/* Remove the pause message */
 	},
 	
+	forceEnd: function() {
+		/* This will be called when pmore is forced ended.
+
+		That is, q key or any key that is not kept.
+		*/
+	}
+	
 	end: function() {
 		/* This will be called when pmore stopped.
 
-		It could be stopped by the user (inputting q key) or met the ^LE tag.
+		It could be stopped by the user (after forceEnd) or met the ^LE tag.
 		*/
 	},
 	
@@ -126,6 +133,14 @@ var viewer = {
 	}
 };
 ```
+
+References
+----------
+
+The implemention follows:
+
+* https://www.ptt.cc/bbs/BBSmovie/M.1197169523.A.F75.html
+* https://www.ptt.cc/bbs/BBSmovie/M.1243129226.A.25D.html
 
 Changelog
 ---------
