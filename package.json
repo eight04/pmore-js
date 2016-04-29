@@ -13,7 +13,7 @@
   },
   "homepage": "https://github.com/eight04/pmore-js#readme",
   "scripts": {
-    "test": "eslint *.js",
+    "test": "eslint main/*.js",
     "preversion": "npm test",
     "postversion": "git push --follow-tags && npm publish"
   }
