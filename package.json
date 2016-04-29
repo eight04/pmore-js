@@ -2,7 +2,7 @@
   "name": "pmore",
   "version": "0.0.0",
   "description": "A BBS Pmore system written in JavaScript.",
-  "main": "main/pmore.js",
+  "main": "src/pmore.js",
   "author": "eight04 <eight04@gmail.com>",
   "license": "MIT",
   "keywords": [
@@ -13,9 +13,9 @@
   },
   "homepage": "https://github.com/eight04/pmore-js#readme",
   "scripts": {
-    "test": "eslint main/*.js",
+    "test": "eslint src/*.js",
     "preversion": "npm test",
     "postversion": "git push --follow-tags && npm publish",
-    "dist": "browserify main/bundle.js -o dist/pmore.js"
+    "dist": "browserify src/bundle.js -o dist/pmore.js"
   }
 }
