@@ -27,6 +27,11 @@ function Pmore(frames, viewer) {
 	}
 	
 	function execute(i) {
+		if (i >= frames.length) {
+			stop();
+			return;
+		}
+		
 		current = i;
 		
 		var next;
@@ -73,8 +78,10 @@ function Pmore(frames, viewer) {
 		if (control.pause) {
 			pause = true;
 			viewer.pause();
-			
-		} else if (control.goto) {
+			return;
+		}
+		
+		if (control.goto) {
 			var j = Math.floor(Math.random() * control.goto.length),
 				cmd = control.goto[j];
 			
@@ -84,7 +91,10 @@ function Pmore(frames, viewer) {
 				execute(next);
 			}, 0.1 * 1000);
 			
-		} else if (control.input) {
+			return;
+		}
+		
+		if (control.input) {
 			input = control.input;
 			if (control.input.options[0].message) {
 				inputSelect = 0;
@@ -92,6 +102,7 @@ function Pmore(frames, viewer) {
 				viewer.inputSelect(inputSelect);
 			}
 			// Input key will reset the timeout
+			// console.log(control.input);
 			if (control.input.wait) {
 				waitInput = syncTimeout(function(){
 					viewer.inputEnd();
@@ -102,7 +113,10 @@ function Pmore(frames, viewer) {
 				}, control.input.wait * 1000);
 			}
 			
-		} else if (control.include) {
+			return;
+		}
+		
+		if (control.include) {
 			include = {
 				target: frameSet.resolve(i, control.include.end),
 				back: i + 1
@@ -111,13 +125,13 @@ function Pmore(frames, viewer) {
 			syncTimeout(function(){
 				execute(control.include.start);
 			}, 0.1 * 1000);
-			
-		} else {
-			// nothing else, just simple ^Lx
-			syncTimeout(function(){
-				execute(i + 1);
-			}, control.wait * 1000);
+			return;
 		}
+		
+		// nothing else, just simple ^Lx
+		syncTimeout(function(){
+			execute(i + 1);
+		}, control.wait * 1000);
 	}
 	
 	function start() {
@@ -150,6 +164,9 @@ function Pmore(frames, viewer) {
 		
 		if (pause) {
 			pause = null;
+			if (sync) {
+				sync.base = Date.now();
+			}
 			execute(current + 1);
 			return;
 		}
@@ -157,15 +174,17 @@ function Pmore(frames, viewer) {
 		if (input) {
 			var i, cmd;
 			for (i = 0; i < input.options.length; i++) {
-				if (input[i].key == key || input[i].key == "@a") {
-					cmd = input[i].cmd;
+				if (input.options[i].key == key || input.options[i].key == "@a") {
+					cmd = input.options[i].cmd;
 					break;
 				}
 			}
 			if (cmd) {
 				var next = frameSet.resolve(current, cmd);
 				viewer.inputEnd();
-				sync.base = Date.now();
+				if (sync) {
+					sync.base = Date.now();
+				}
 				input = null;
 				clearTimeout(waitInput);
 				waitInput = null;
