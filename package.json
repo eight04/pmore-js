@@ -14,7 +14,7 @@
   "homepage": "https://github.com/eight04/pmore-js#readme",
   "scripts": {
     "test": "eslint src/*.js",
-    "preversion": "npm test",
+    "preversion": "npm test && npm run dist",
     "postversion": "git push --follow-tags && npm publish",
     "dist": "browserify src/bundle.js -o dist/pmore.js"
   }
