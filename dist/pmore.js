@@ -132,7 +132,7 @@ function input(s) {
 		},
 		defaultKey = "1";
 	
-	while (match = re.exec(s)) { // eslint-disable-line no-cond-assign
+	while ((match = re.exec(s))) {
 		if (match[2]) {
 			var option = {
 				key: match[1],
@@ -186,7 +186,7 @@ function control(s, defaultWait) {
 			include: null
 		};	
 	
-	while (match = re.exec(s)) { // eslint-disable-line no-cond-assign
+	while ((match = re.exec(s))) {
 		switch (match[0][0]) {
 			case "P":
 				result.pause = true;
