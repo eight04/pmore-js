@@ -70,37 +70,37 @@ function FrameSet(values, viewer) {
 module.exports = FrameSet;
 
 },{"./parser":2}],2:[function(require,module,exports){
-function cmd(cmd) {
-	var match = cmd.match(/:([^:]+):|([fpl])(([+-]?)\d+)/),
-		typeTable = {
-			f: "frame",
-			p: "page",
-			l: "line"
-		};
+var typeTable = {
+	f: "frame",
+	p: "page",
+	l: "line"
+};
+
+function cmd(s) {
+	var match = s.match(/:([^:]+):|([fpl])(([+-]?)\d+)/);
 		
 	if (match[1]) {
 		return {
 			type: "name",
 			name: match[1]
 		};
-	} else {
-		return {
-			type: typeTable[match[2]],
-			relative: match[4],
-			number: +match[3]
-		};
 	}
+	return {
+		type: typeTable[match[2]],
+		relative: match[4],
+		number: +match[3]
+	};
 }
 
 function goto(s) {
 	return s.substring(1).split(",").map(cmd);
 }
 
+// are these keycode order?
+var arrowKeys = ["@u", "@d", "@r", "@l"],
+	editKeys = ["@H", "@I", "@D", "@E", "@P", "@D"];
+	
 function getNextKey(key) {
-	// are these keycode order?
-	var arrowKeys = ["@u", "@d", "@r", "@l"],
-		editKeys = ["@H", "@I", "@D", "@E", "@P", "@D"];
-		
 	if (key.length == 1) {
 		if (key != "~") {
 			return String.fromCharCode(key.charCodeAt(0) + 1);
@@ -269,6 +269,27 @@ function Pmore(frames, viewer) {
 		next();
 	}
 	
+	function inputCleanUp(){
+		if (!input) {
+			return;
+		}
+		if (input.options[0].message) {
+			viewer.inputEnd();
+		}
+		input = null;
+		waitInput = null;
+		inputSelect = null;
+	}
+	
+	function executeNext(i, wait, fn) {
+		return syncTimeout(function(){
+			if (fn) {
+				fn();
+			}
+			execute(i);
+		}, wait * 1000);
+	}
+	
 	function execute(i) {
 		if (i >= frames.length) {
 			stop();
@@ -335,10 +356,7 @@ function Pmore(frames, viewer) {
 			
 			next = frameSet.resolve(i, cmd);
 				
-			syncTimeout(function(){
-				execute(next);
-			}, 0.1 * 1000);
-			
+			executeNext(next, 0.1);
 			return;
 		}
 		
@@ -351,17 +369,8 @@ function Pmore(frames, viewer) {
 			}
 			// Input key will reset the timeout
 			if (control.input.wait) {
-				waitInput = syncTimeout(function(){
-					if (input.options[0].message) {
-						viewer.inputEnd();
-					}
-					input = null;
-					waitInput = null;
-					inputSelect = null;
-					execute(i + 1);
-				}, control.input.wait * 1000);
-			}
-			
+				waitInput = executeNext(i + 1, control.input.wait, inputCleanUp);
+			}		
 			return;
 		}
 		
@@ -372,16 +381,12 @@ function Pmore(frames, viewer) {
 				back: i + 1
 			};
 			
-			syncTimeout(function(){
-				execute(next);
-			}, 0.1 * 1000);
+			executeNext(next, 0.1);
 			return;
 		}
 		
 		// nothing else, just simple ^Lx
-		syncTimeout(function(){
-			execute(i + 1);
-		}, control.wait * 1000);
+		executeNext(i + 1, control.wait);
 	}
 	
 	function start() {
