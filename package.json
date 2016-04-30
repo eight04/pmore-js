@@ -1,6 +1,6 @@
 {
   "name": "pmore",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A BBS Pmore system written in JavaScript.",
   "main": "src/pmore.js",
   "author": "eight04 <eight04@gmail.com>",
