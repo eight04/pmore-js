@@ -134,16 +134,20 @@ var viewer = {
 };
 ```
 
-References
-----------
+Pmore
+-----
 
-The implemention follows:
+Pmore is a scriptable `more` system created by piaip.bbs@ptt.cc. The implementation follows these references:
 
 * https://www.ptt.cc/bbs/BBSmovie/M.1197169523.A.F75.html
 * https://www.ptt.cc/bbs/BBSmovie/M.1243129226.A.25D.html
 
 Changelog
 ---------
+
+* 0.1.1 (Apr 30, 2016)
+
+	- Fix unpause bug.
 
 * 0.1.0 (Apr 27, 2016)
 
