@@ -1,34 +1,34 @@
-function cmd(cmd) {
-	var match = cmd.match(/:([^:]+):|([fpl])(([+-]?)\d+)/),
-		typeTable = {
-			f: "frame",
-			p: "page",
-			l: "line"
-		};
+var typeTable = {
+	f: "frame",
+	p: "page",
+	l: "line"
+};
+
+function cmd(s) {
+	var match = s.match(/:([^:]+):|([fpl])(([+-]?)\d+)/);
 		
 	if (match[1]) {
 		return {
 			type: "name",
 			name: match[1]
 		};
-	} else {
-		return {
-			type: typeTable[match[2]],
-			relative: match[4],
-			number: +match[3]
-		};
 	}
+	return {
+		type: typeTable[match[2]],
+		relative: match[4],
+		number: +match[3]
+	};
 }
 
 function goto(s) {
 	return s.substring(1).split(",").map(cmd);
 }
 
+// are these keycode order?
+var arrowKeys = ["@u", "@d", "@r", "@l"],
+	editKeys = ["@H", "@I", "@D", "@E", "@P", "@D"];
+	
 function getNextKey(key) {
-	// are these keycode order?
-	var arrowKeys = ["@u", "@d", "@r", "@l"],
-		editKeys = ["@H", "@I", "@D", "@E", "@P", "@D"];
-		
 	if (key.length == 1) {
 		if (key != "~") {
 			return String.fromCharCode(key.charCodeAt(0) + 1);
