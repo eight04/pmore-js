@@ -15,6 +15,6 @@
     "test": "eslint src/*.js",
     "preversion": "npm test && npm run dist",
     "postversion": "git push --follow-tags && npm publish",
-    "dist": "browserify src/bundle.js -o dist/pmore.js"
+    "dist": "browserify src/pmore.js -o dist/pmore.js -s Pmore"
   }
 }
